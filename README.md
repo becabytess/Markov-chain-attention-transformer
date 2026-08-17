@@ -7,7 +7,7 @@
 
 ## 1. The Core Insight
 
-Conventional retrieval treats embeddings as static points in a high-dimensional vector space:
+Conventional retrieval treats embeddings as static points in a vector space:
 $$x_{\text{concept}} = E(\text{concept})$$
 
 In human cognition, however, our semantic representation of knowledge evolves as we interact with and revisit concepts. When a researcher spends weeks exploring *gradient descent*, *derivatives*, *backpropagation*, and *neural networks*, their active interpretation of *calculus* acquires a contextual bias toward optimization and learning algorithms.
@@ -22,74 +22,82 @@ $$\boxed{\text{Canonical Knowledge Space } X \quad \times \quad \text{Personal M
 
 ---
 
-## 2. Mathematical Specification
+## 2. The Algorithm
 
-### Step 1: The Canonical Reference Hypersphere
-Let $\{c_1, \dots, c_N\}$ be a universe of $N$ concepts. Each concept is mapped to a unit vector via an embedding model $E(\cdot)$:
+### Step 1: The Canonical Reference Space
+Let $\{c_1, \dots, c_N\}$ be our universe of concepts. Each concept is embedded as a fixed unit vector:
 $$x_i = \frac{E(c_i)}{\|E(c_i)\|} \in \mathbb{S}^{d-1}$$
 
-The canonical matrix $X = [x_1, \dots, x_N]^T \in \mathbb{R}^{N \times d}$ remains **strictly frozen**, ensuring long-term semantic stability without coordinate collapse.
+The canonical space $X$ is **never modified**.
 
 ---
 
-### Step 2: Semantic Graph & Structural PageRank Prior
-We construct a Markov transition graph where edge weights reflect semantic proximity above a noise threshold $\theta$:
-$$W_{ij} = \max\left(0, \frac{x_i \cdot x_j - \theta}{1 - \theta}\right)^p \quad (i \neq j)$$
+### Step 2: The Random Surfer on Knowledge (Structural Prior $p$)
+To discover which concepts form the central backbone of the user's curiosity, we simulate a **Random Surfer** traversing the semantic space:
 
-Let $P$ be the row-stochastic transition matrix:
-$$P_{ij} = \frac{W_{ij}}{\sum_k W_{ik}}$$
+1. **Neighbor Transition Probabilities:**
+   From any concept $i$, the surfer looks at all neighboring concepts $j$. The probability of jumping to neighbor $j$ is proportional to how semantically similar they are:
+   $$P(j \mid i) = \frac{\text{sim}(x_i, x_j)}{\sum_k \text{sim}(x_i, x_k)}$$
+   *(Very distant, unrelated concepts with similarity below a threshold receive zero transition probability).*
 
-We compute the stationary distribution $p \in \mathbb{R}^N$ via PageRank with teleportation vector $v$ (proportional to historical query activity):
-$$p = d \cdot P^T p + (1 - d) \cdot v$$
-$$\sum_{i=1}^N p_i = 1$$
+2. **The Surfer's Walk:**
+   * **85% of the time:** The surfer jumps to a semantic neighbor according to $P(j \mid i)$.
+   * **15% of the time (Random Exploration):** The surfer gets bored and teleports to a concept based on the user's past search history.
 
-Here, $p_i$ represents the **structural centrality** of concept $i$ across the user's intellectual network. Densely connected knowledge clusters (e.g., ML, math, signal processing) mutually amplify their stationary probability, while isolated one-off topics decay.
+3. **Structural Mass ($p_i$):**
+   The percentage of time the surfer spends visiting concept $i$ becomes its structural mass $p_i$ ($\sum p_i = 1$). 
+   * Densely connected clusters (e.g. *Audio ML*, *CNNs*, *Optimization*, *Algorithms*) mutually amplify each other and get **high mass**.
+   * Disconnected or one-off topics quickly lose the surfer and get **low mass**.
 
 ---
 
-### Step 3: The Personal Field & Active Mass
-The active mass vector $m \in \mathbb{R}^N$ represents the user's current personal influence distribution, initialized to the structural prior:
-$$m^{(0)} = p, \quad \text{with } \sum_{i=1}^N m_i = 1$$
+### Step 3: The Active Personal Mass ($m$)
+The active mass distribution $m$ tracks the user's current state of personal influence, initialized to the structural mass:
+$$m = p, \quad \sum_{i=1}^N m_i = 1$$
 
 ---
 
 ### Step 4: Gravitational Query Deflection
-When a user submits a query, we compute its baseline embedding:
+When the user enters a search query, it is embedded as $q_0$:
 $$q_0 = \frac{E(\text{query})}{\|E(\text{query})\|}$$
 
-The personal mass field exerts a directional force on $q_0$, pulling it toward semantically relevant, high-mass concepts:
-$$\Delta q = \eta \sum_{i=1}^N m_i \cdot K(q_0 \cdot x_i) \cdot (x_i - q_0)$$
+The personal mass field pulls the query vector toward concepts that are both **semantically related** and **high in personal mass**:
+$$\Delta q = \eta \sum_{i=1}^N m_i \cdot K(\text{sim}(q_0, x_i)) \cdot (x_i - q_0)$$
 $$q^* = \frac{q_0 + \Delta q}{\|q_0 + \Delta q\|}$$
 
 where:
-* $K(s) = \max\left(0, \frac{s - \theta}{1 - \theta}\right)^2$ is the affinity kernel.
-* $\eta$ is the personalization strength parameter.
-* $q^*$ is the personalized query vector.
+* $K(\text{sim})$ weights the pull so distant unrelated concepts exert zero force.
+* $\eta$ is the personalization strength.
+* $q^*$ is the personalized, deflected query vector.
 
 ---
 
-### Step 5: Canonical Retrieval
-The deflected query searches the untouched reference space:
+### Step 5: Search the Canonical Space
+We search the untouched canonical space using the deflected query:
 $$\text{score}_i = q^* \cdot x_i$$
 
-The retrieved concepts naturally align with the user's active context without corrupting generic semantic relationships.
+The retrieved results are naturally biased toward what the user currently cares about without corrupting general semantic truth.
 
 ---
 
 ### Step 6: Fast Interaction Reinforcement
-Every interaction produces immediate relevance evidence. Concepts matching the active query receive a local reinforcement boost:
-$$\Delta m_i = \beta \cdot K(q^* \cdot x_i)$$
-$$m \leftarrow \frac{m + \Delta m}{\sum_{k=1}^N (m_k + \Delta m_k)}$$
+Every query creates immediate relevance evidence. Concepts matching the active query receive a quick mass boost:
+$$\Delta m_i \propto K(\text{score}_i)$$
+$$m \leftarrow \frac{m + \Delta m}{\sum_k (m_k + \Delta m_k)}$$
 
-This creates an immediate "hot trail" for active workflows without rebuilding the graph.
+This creates a "hot trail" of active focus without needing to recalculate the whole graph.
 
 ---
 
 ### Step 7: Slow Structural Fusion (EMA)
-When new concepts or substantial activity accumulate, the Markov graph is restructured and fresh PageRank $p^{\text{new}}$ is computed. The engine fuses the macro structural state with the micro query trail via an Exponential Moving Average (EMA):
-$$\boxed{m^{\text{new}} = \alpha \cdot p^{\text{new}} + (1 - \alpha) \cdot m^{\text{old}}}$$
+When new concepts are added or significant history accumulates, the random surfer is rerun on the updated graph to get a fresh structural prior $p^{\text{new}}$. 
 
-Setting $\alpha = 0.5$ balances topological centrality with recent empirical relevance while strictly maintaining $\sum m_i = 1$.
+We merge the structural prior with the active query trail using an equal Exponential Moving Average ($\alpha = 0.5$):
+$$\boxed{m^{\text{new}} = 0.5 \cdot p^{\text{new}} + 0.5 \cdot m^{\text{old}}}$$
+
+* $p^{\text{new}}$ brings in the updated topological structure.
+* $m^{\text{old}}$ preserves the user's recent interaction trail.
+* The total mass remains strictly normalized ($\sum m_i = 1$).
 
 ---
 
@@ -104,7 +112,7 @@ Setting $\alpha = 0.5$ balances topological centrality with recent empirical rel
              (Per-Query Loop)         │        (Periodic Rebuild)
                      │                │                │
                      ▼                │                ▼
-             Query Lens (q*)          │        New Semantic Graph
+             Query Lens (q*)          │         Random Surfer
                      │                │                │
                      ▼                │                ▼
             Canonical Retrieval       │        PageRank Prior (p)
@@ -115,7 +123,7 @@ Setting $\alpha = 0.5$ balances topological centrality with recent empirical rel
                      └───────────────►├◄───────────────┘
                                       ▼
                          EMA Fusion (α = 0.5)
-                        m = α·p + (1-α)·m_old
+                        m = 0.5·p + 0.5·m_old
                                       │
                                       ▼
                            Active Mass Field (m)
@@ -123,12 +131,12 @@ Setting $\alpha = 0.5$ balances topological centrality with recent empirical rel
 
 ---
 
-## 4. Key Properties & Theorems
+## 4. Key Properties
 
-1. **Zero Semantic Drift:** Because $X$ is frozen, the geometry of human knowledge is preserved indefinitely.
-2. **Strict Normalization:** Both $p$ and $m$ are probability simplices ($\sum m_i = 1$), eliminating runaway amplification and unbounded mass explosion.
-3. **Graph-Regularized Personalization:** Isolated noise searches (e.g., one-off queries) cannot capture large mass because they lack graph centrality ($W_{ij} \approx 0$).
-4. **Smooth Deflection Limit:** As $\eta \to 0$, $q^* \to q_0$ (pure generic search). As $\eta > 0$, queries experience a smooth angular bias bounded by the local tangent plane.
+1. **Zero Semantic Drift:** The canonical space $X$ is frozen. Knowledge never distorts or collapses.
+2. **Strictly Bounded ($\sum m_i = 1$):** Mass is a probability distribution. It cannot explode or drift to infinity.
+3. **Graph-Regularized:** Isolated one-off searches cannot capture high mass because the random surfer quickly moves away from them.
+4. **Smooth Deflection:** Personalization acts as a smooth, localized gravitational lens that bends queries toward active attractors.
 
 ---
 
