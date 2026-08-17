@@ -1,114 +1,140 @@
 # Gravitational Memory (Gravimem) 🪐
 
-> **Dynamic Semantic Memory via Query Deformation & Semantic Graph PageRank.**
-> *An ongoing research project exploring dynamic, personalized knowledge geometry beyond static embeddings and spaced repetition.*
+> **Dynamic Semantic Memory via Query Deformation & Semantic Graph PageRank**
+> *An ongoing research project on dynamic, personalized knowledge geometry beyond static embeddings and spaced repetition.*
 
 ---
 
-## 1. Overview & Core Hypothesis
+## 1. The Core Insight
 
-Traditional semantic search treats concept embeddings as static vectors:
-$$\text{concept } c_i \longrightarrow \text{fixed embedding } x_i^0$$
+Conventional retrieval treats embeddings as static points in a high-dimensional vector space:
+$$x_{\text{concept}} = E(\text{concept})$$
 
-In human cognition, however, our semantic interpretation of a concept evolves as we study, explore, and revisit interconnected domains:
-> When studying *gradient descent*, *backpropagation*, and *neural networks*, a person's conceptual representation of *calculus* acquires a contextual bias toward optimization and learning algorithms without losing its underlying meaning.
+In human cognition, however, our semantic representation of knowledge evolves as we interact with and revisit concepts. When a researcher spends weeks exploring *gradient descent*, *derivatives*, *backpropagation*, and *neural networks*, their active interpretation of *calculus* acquires a contextual bias toward optimization and learning algorithms.
 
-**Gravimem** explores a dual-timescale architecture:
-1. **Frozen Canonical Reference Space ($X$):** Preserves general semantic truth without distortion.
-2. **Personal Influence Field ($m$):** Captures long-term structural interests via Semantic PageRank blended with fast, interaction-driven query trails.
-3. **The Gravitational Query Lens ($q^*$):** Bends incoming query vectors toward the user's active attractors, retrieving personalized context from the pristine canonical space.
+Rather than permanently distorting the underlying concepts or relying on graph edges alone, **Gravimem** models personalization as a **gravitational field acting on incoming queries**:
+
+* The **knowledge space** remains pristine and canonical ($x_i$).
+* The user's **accumulated activity** forms a mass distribution ($m_i$).
+* An incoming query ($q_0$) passes through this personal field and is **deflected toward active conceptual attractors** ($q^*$).
+
+$$\boxed{\text{Canonical Knowledge Space } X \quad \times \quad \text{Personal Mass Field } m \quad \Longrightarrow \quad \text{Query Lens } q^*}$$
 
 ---
 
-## 2. Mathematical Formulation
+## 2. Mathematical Specification
 
-### A. Semantic Graph & Structural PageRank Prior ($p$)
-Given canonical embeddings $x_1, \dots, x_N \in \mathbb{S}^{d-1}$:
-$$W_{ij} = \max\left(0, \frac{\operatorname{sim}(x_i, x_j) - \theta_{\text{sim}}}{1 - \theta_{\text{sim}}}\right)^p$$
-$$p = \operatorname{PageRank}(W, \text{teleport}=v), \quad \sum_{i=1}^N p_i = 1$$
-where $v$ is the user's activity frequency distribution.
+### Step 1: The Canonical Reference Hypersphere
+Let $\{c_1, \dots, c_N\}$ be a universe of $N$ concepts. Each concept is mapped to a unit vector via an embedding model $E(\cdot)$:
+$$x_i = \frac{E(c_i)}{\|E(c_i)\|} \in \mathbb{S}^{d-1}$$
 
-### B. Query Gravitational Deflection ($q^*$)
-When a query arrives with initial embedding $q_0 = E(\text{query})$:
-$$\Delta q = \eta \sum_{i=1}^N m_i \cdot K\left(\operatorname{sim}(q_0, x_i)\right) \cdot (x_i - q_0)$$
+The canonical matrix $X = [x_1, \dots, x_N]^T \in \mathbb{R}^{N \times d}$ remains **strictly frozen**, ensuring long-term semantic stability without coordinate collapse.
+
+---
+
+### Step 2: Semantic Graph & Structural PageRank Prior
+We construct a Markov transition graph where edge weights reflect semantic proximity above a noise threshold $\theta$:
+$$W_{ij} = \max\left(0, \frac{x_i \cdot x_j - \theta}{1 - \theta}\right)^p \quad (i \neq j)$$
+
+Let $P$ be the row-stochastic transition matrix:
+$$P_{ij} = \frac{W_{ij}}{\sum_k W_{ik}}$$
+
+We compute the stationary distribution $p \in \mathbb{R}^N$ via PageRank with teleportation vector $v$ (proportional to historical query activity):
+$$p = d \cdot P^T p + (1 - d) \cdot v$$
+$$\sum_{i=1}^N p_i = 1$$
+
+Here, $p_i$ represents the **structural centrality** of concept $i$ across the user's intellectual network. Densely connected knowledge clusters (e.g., ML, math, signal processing) mutually amplify their stationary probability, while isolated one-off topics decay.
+
+---
+
+### Step 3: The Personal Field & Active Mass
+The active mass vector $m \in \mathbb{R}^N$ represents the user's current personal influence distribution, initialized to the structural prior:
+$$m^{(0)} = p, \quad \text{with } \sum_{i=1}^N m_i = 1$$
+
+---
+
+### Step 4: Gravitational Query Deflection
+When a user submits a query, we compute its baseline embedding:
+$$q_0 = \frac{E(\text{query})}{\|E(\text{query})\|}$$
+
+The personal mass field exerts a directional force on $q_0$, pulling it toward semantically relevant, high-mass concepts:
+$$\Delta q = \eta \sum_{i=1}^N m_i \cdot K(q_0 \cdot x_i) \cdot (x_i - q_0)$$
 $$q^* = \frac{q_0 + \Delta q}{\|q_0 + \Delta q\|}$$
+
 where:
-* $m_i$ is the active personal influence mass ($\sum m_i = 1$).
-* $K(s) = \max\left(0, \frac{s - \theta}{1 - \theta}\right)^2$ is a neighborhood affinity kernel.
-* $\eta$ is the personalization coefficient.
-
-### C. Fast Interaction Reinforcement
-Each query event creates immediate evidence:
-$$\Delta m_i = \beta \cdot K\left(\operatorname{sim}(q^*, x_i)\right)$$
-$$m \leftarrow \frac{m + \Delta m}{\sum (m + \Delta m)}$$
-
-### D. Slow Structural Fusion (EMA)
-When the graph topology is updated with new knowledge, the new structural PageRank $p^{\text{new}}$ is merged with the active trail:
-$$m^{\text{new}} = \alpha \cdot p^{\text{new}} + (1 - \alpha) \cdot m^{\text{old}}$$
+* $K(s) = \max\left(0, \frac{s - \theta}{1 - \theta}\right)^2$ is the affinity kernel.
+* $\eta$ is the personalization strength parameter.
+* $q^*$ is the personalized query vector.
 
 ---
 
-## 3. Repository Structure
+### Step 5: Canonical Retrieval
+The deflected query searches the untouched reference space:
+$$\text{score}_i = q^* \cdot x_i$$
+
+The retrieved concepts naturally align with the user's active context without corrupting generic semantic relationships.
+
+---
+
+### Step 6: Fast Interaction Reinforcement
+Every interaction produces immediate relevance evidence. Concepts matching the active query receive a local reinforcement boost:
+$$\Delta m_i = \beta \cdot K(q^* \cdot x_i)$$
+$$m \leftarrow \frac{m + \Delta m}{\sum_{k=1}^N (m_k + \Delta m_k)}$$
+
+This creates an immediate "hot trail" for active workflows without rebuilding the graph.
+
+---
+
+### Step 7: Slow Structural Fusion (EMA)
+When new concepts or substantial activity accumulate, the Markov graph is restructured and fresh PageRank $p^{\text{new}}$ is computed. The engine fuses the macro structural state with the micro query trail via an Exponential Moving Average (EMA):
+$$\boxed{m^{\text{new}} = \alpha \cdot p^{\text{new}} + (1 - \alpha) \cdot m^{\text{old}}}$$
+
+Setting $\alpha = 0.5$ balances topological centrality with recent empirical relevance while strictly maintaining $\sum m_i = 1$.
+
+---
+
+## 3. The Dual-Timescale Dynamics
 
 ```
-gravitational-memory/
-├── data/
-│   └── sample/               # Sample activity stream for reproduction
-├── src/
-│   ├── config.py             # Hyperparameters & environment settings
-│   ├── ingestion/            # Chronological activity parsers (Takeout/JSON/HTML)
-│   ├── embeddings/           # Unified embedder (Local BGE / Gemini / Cloudflare)
-│   ├── graph/                # Semantic PageRank graph model
-│   ├── engine/               # Query Deformation & Particle dynamics engines
-│   └── retrieval/            # Benchmark evaluation suites
-├── web/
-│   ├── server.py             # FastAPI backend
-│   └── static/               # Interactive 2D UMAP canvas & A/B retrieval comparator
-├── run_query_deformation_experiment.py # End-to-end experiment pipeline
-├── requirements.txt
-└── README.md
+                  ┌────────────────────────────────────────┐
+                  │      Activity Stream / Interactions    │
+                  └───────────────────┬────────────────────┘
+                                      │
+              Fast Timescale          │          Slow Timescale
+             (Per-Query Loop)         │        (Periodic Rebuild)
+                     │                │                │
+                     ▼                │                ▼
+             Query Lens (q*)          │        New Semantic Graph
+                     │                │                │
+                     ▼                │                ▼
+            Canonical Retrieval       │        PageRank Prior (p)
+                     │                │                │
+                     ▼                │                │
+             Mass Reinforcement       │                │
+                     │                │                │
+                     └───────────────►├◄───────────────┘
+                                      ▼
+                         EMA Fusion (α = 0.5)
+                        m = α·p + (1-α)·m_old
+                                      │
+                                      ▼
+                           Active Mass Field (m)
 ```
 
 ---
 
-## 4. Quickstart
+## 4. Key Properties & Theorems
 
-### 1. Installation
-```bash
-git clone https://github.com/becabytess/gravitational-memory.git
-cd gravitational-memory
-pip install -r requirements.txt
-```
-
-### 2. Configure Environment (Optional)
-Copy `.env.example` to `.env`:
-```bash
-cp .env.example .env
-```
-*(By default, the engine runs 100% locally with zero API keys required, or you can plug in your Gemini/Cloudflare API keys).*
-
-### 3. Run Experiment Pipeline
-```bash
-python run_query_deformation_experiment.py
-```
-
-### 4. Launch Interactive Workbench
-```bash
-uvicorn web.server:app --reload --port 8000
-```
-Open **[http://localhost:8000](http://localhost:8000)** to explore the dynamic semantic space, inspect concept mass distributions, and test query deflections side-by-side.
+1. **Zero Semantic Drift:** Because $X$ is frozen, the geometry of human knowledge is preserved indefinitely.
+2. **Strict Normalization:** Both $p$ and $m$ are probability simplices ($\sum m_i = 1$), eliminating runaway amplification and unbounded mass explosion.
+3. **Graph-Regularized Personalization:** Isolated noise searches (e.g., one-off queries) cannot capture large mass because they lack graph centrality ($W_{ij} \approx 0$).
+4. **Smooth Deflection Limit:** As $\eta \to 0$, $q^* \to q_0$ (pure generic search). As $\eta > 0$, queries experience a smooth angular bias bounded by the local tangent plane.
 
 ---
 
-## 5. Research Roadmap & Open Questions
+## 5. Ongoing Research Directions
 
-We welcome research contributions and experiments in:
-* **Multi-Scale Temporal Decay:** Dynamic half-life for short-term curiosity vs. foundational career skills.
-* **Hierarchical Concept Abstraction:** Automatic hierarchical grouping of fine-grained concept particles.
-* **Multi-Modal Personalization:** Extending the query lens to image, audio, and code embeddings.
-* **Personalized RAG:** Evaluating context retrieval improvements in LLM agent memory architectures.
-
----
-
-## License
-MIT License
+* **Multi-Scale Temporal Half-Life:** Differentiating short-term curiosity spikes from foundational career-long knowledge.
+* **Hierarchical Concept Trees:** Graph coarsening and multi-resolution PageRank for scaling to $N > 10^6$ concepts.
+* **Personalized RAG & Memory Agents:** Using query deflection fields to condition context retrieval in personal AI assistants.
+* **Cross-Modal Gravitational Fields:** Extending $q^*$ deflection across multimodal embeddings (code, text, images, audio).
