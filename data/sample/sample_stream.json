@@ -1,0 +1,14 @@
+[
+  {"query": "calculus derivatives and gradient descent", "timestamp_str": "2026-08-01, 10:00:00 AM UTC"},
+  {"query": "backpropagation neural networks", "timestamp_str": "2026-08-01, 11:30:00 AM UTC"},
+  {"query": "yolo object detection tutorial", "timestamp_str": "2026-08-02, 09:15:00 AM UTC"},
+  {"query": "convolutional neural networks filters", "timestamp_str": "2026-08-02, 14:00:00 PM UTC"},
+  {"query": "fourier transform audio processing", "timestamp_str": "2026-08-03, 10:00:00 AM UTC"},
+  {"query": "mel spectrograms in pytorch", "timestamp_str": "2026-08-03, 15:30:00 PM UTC"},
+  {"query": "decision tree machine learning algorithms", "timestamp_str": "2026-08-04, 08:45:00 AM UTC"},
+  {"query": "xgboost gradient boosting", "timestamp_str": "2026-08-04, 11:20:00 AM UTC"},
+  {"query": "transformers attention mechanism 3blue1brown", "timestamp_str": "2026-08-05, 13:00:00 PM UTC"},
+  {"query": "whisper speech recognition architecture", "timestamp_str": "2026-08-05, 16:10:00 PM UTC"},
+  {"query": "markov chains and random walks", "timestamp_str": "2026-08-06, 09:30:00 AM UTC"},
+  {"query": "pagerank graph algorithm", "timestamp_str": "2026-08-06, 14:45:00 PM UTC"}
+]

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gravimem V0 — Dynamic Semantic Memory Workbench</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="logo-icon">🪐</div>
+        <div class="brand-text">
+          <h1>Gravimem <span>v0</span></h1>
+          <p class="subtitle">Dynamic Semantic Memory & Geometric Deformation</p>
+        </div>
+      </div>
+
+      <div class="header-stats" id="headerStats">
+        <div class="stat-pill">
+          <span class="stat-label">Particles</span>
+          <span class="stat-val" id="statParticles">-</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-label">Events Replayed</span>
+          <span class="stat-val" id="statEvents">-</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-label">Avg Displacement</span>
+          <span class="stat-val" id="statDisplacement">-</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-label">Active Mass Peak</span>
+          <span class="stat-val" id="statMaxMass">-</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="app-main">
+      <!-- Left Panel: Canvas Visualizer -->
+      <section class="visualizer-container card">
+        <div class="visualizer-toolbar">
+          <div class="mode-toggle-group">
+            <button class="btn-toggle active" id="btnModeActive">Active Geometry (x)</button>
+            <button class="btn-toggle" id="btnModeOriginal">Original Anchors (x₀)</button>
+            <button class="btn-toggle" id="btnModeVectors">Show Displacement Vectors</button>
+          </div>
+          <div class="canvas-controls">
+            <span class="hint">Scroll to zoom · Drag to pan · Click particle to inspect</span>
+            <button class="btn-sm" id="btnResetView">Reset View</button>
+          </div>
+        </div>
+
+        <div class="canvas-wrapper">
+          <canvas id="particleCanvas"></canvas>
+          <div class="canvas-tooltip" id="canvasTooltip"></div>
+        </div>
+
+        <!-- Timeline / State Bar -->
+        <div class="timeline-bar">
+          <div class="timeline-info">
+            <span class="label">Space Evolution:</span>
+            <span class="val" id="timelineStatus">Chronological Replay (70% Past $\rightarrow$ 30% Future)</span>
+          </div>
+          <div class="legend">
+            <span class="legend-item"><span class="dot high-mass"></span> High Activity/Mass</span>
+            <span class="legend-item"><span class="dot normal-mass"></span> Base Mass</span>
+            <span class="legend-item"><span class="dot-vector"></span> $\Delta x$ Vector</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Panel: Inspection & Benchmarks -->
+      <aside class="sidebar-container">
+        <!-- Tab Navigation -->
+        <div class="tab-nav">
+          <button class="tab-btn active" data-tab="tab-eval">Evaluation & Queries</button>
+          <button class="tab-btn" data-tab="tab-shifts">Geometric Shifts (ΔS)</button>
+          <button class="tab-btn" data-tab="tab-inspect">Selected Concept</button>
+          <button class="tab-btn" data-tab="tab-params">Physics Engine</button>
+        </div>
+
+        <!-- Tab 1: 70/30 Evaluation Queries -->
+        <div class="tab-pane active" id="tab-eval">
+          <div class="pane-header">
+            <h3>Future Activity Retrieval (30% Split)</h3>
+            <p>Compare baseline static retrieval ($x_0$) against dynamic memory ($x$) on your real future searches.</p>
+          </div>
+
+          <div class="query-select-box">
+            <label for="selectTestQuery">Select Held-out Future Search:</label>
+            <select id="selectTestQuery" class="select-input">
+              <option value="">Loading test queries...</option>
+            </select>
+          </div>
+
+          <div class="comparison-grid" id="comparisonContainer">
+            <div class="retrieval-column static-col">
+              <div class="col-header">
+                <h4>Static Baseline ($x_0$)</h4>
+                <span class="badge">Generic Semantic Meaning</span>
+              </div>
+              <div class="results-list" id="staticResultsList">
+                <div class="empty-state">Select a query above</div>
+              </div>
+            </div>
+
+            <div class="retrieval-column dynamic-col">
+              <div class="col-header">
+                <h4>Dynamic Memory ($x$)</h4>
+                <span class="badge active-badge">Active Semantic Context</span>
+              </div>
+              <div class="results-list" id="dynamicResultsList">
+                <div class="empty-state">Select a query above</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 2: Geometric Shifts (Delta S) -->
+        <div class="tab-pane" id="tab-shifts">
+          <div class="pane-header">
+            <h3>Top Geometric Attractions ($\Delta S_{ij}$)</h3>
+            <p>Concept pairs that experienced the strongest gravitational attraction due to your activity.</p>
+          </div>
+          <div class="shifts-table-wrapper">
+            <table class="shifts-table" id="shiftsTable">
+              <thead>
+                <tr>
+                  <th>Concept Pair</th>
+                  <th>Original Sim</th>
+                  <th>Active Sim</th>
+                  <th>$\Delta S_{ij}$</th>
+                </tr>
+              </thead>
+              <tbody id="shiftsTableBody">
+                <tr><td colspan="4" class="empty-cell">No shifts loaded</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Tab 3: Selected Concept Inspector -->
+        <div class="tab-pane" id="tab-inspect">
+          <div class="pane-header">
+            <h3 id="inspectLabel">No Concept Selected</h3>
+            <p>Click on any particle in the canvas to inspect its mass, velocity, displacement, and active neighborhood.</p>
+          </div>
+
+          <div class="concept-metrics" id="conceptMetrics" style="display:none;">
+            <div class="metric-row">
+              <span>Current Mass ($m_i$):</span>
+              <strong id="inspectMass">-</strong>
+            </div>
+            <div class="metric-row">
+              <span>Visits in Stream:</span>
+              <strong id="inspectVisits">-</strong>
+            </div>
+            <div class="metric-row">
+              <span>Semantic Displacement ($||\Delta x_i||$):</span>
+              <strong id="inspectDisp">-</strong>
+            </div>
+            <div class="metric-row">
+              <span>Initial 2D Anchor ($x_0$):</span>
+              <span class="mono" id="inspectX0">-</span>
+            </div>
+            <div class="metric-row">
+              <span>Active 2D Position ($x$):</span>
+              <span class="mono" id="inspectX">-</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 4: Physics Engine Tuning -->
+        <div class="tab-pane" id="tab-params">
+          <div class="pane-header">
+            <h3>Physics Engine Parameters</h3>
+            <p>Tune force strengths and re-run the simulation.</p>
+          </div>
+
+          <div class="param-form">
+            <div class="form-group">
+              <label>Gravitational Strength ($G$): <span id="valG">0.15</span></label>
+              <input type="range" id="inputG" min="0.01" max="0.50" step="0.01" value="0.15">
+            </div>
+
+            <div class="form-group">
+              <label>Semantic Anchor Elasticity ($k$): <span id="valK">0.30</span></label>
+              <input type="range" id="inputK" min="0.05" max="0.80" step="0.01" value="0.30">
+            </div>
+
+            <div class="form-group">
+              <label>Momentum Damping ($\beta$): <span id="valBeta">0.85</span></label>
+              <input type="range" id="inputBeta" min="0.50" max="0.99" step="0.01" value="0.85">
+            </div>
+
+            <div class="form-group">
+              <label>Repulsion Strength ($R$): <span id="valR">0.08</span></label>
+              <input type="range" id="inputR" min="0.01" max="0.30" step="0.01" value="0.08">
+            </div>
+
+            <div class="form-group">
+              <label>Mass Boost per Visit ($\alpha$): <span id="valAlpha">1.0</span></label>
+              <input type="range" id="inputAlpha" min="0.2" max="3.0" step="0.1" value="1.0">
+            </div>
+
+            <div class="form-group">
+              <label>Number of Search Events:</label>
+              <input type="number" id="inputEvents" value="300" min="50" max="2000" class="num-input">
+            </div>
+
+            <button class="btn-primary" id="btnRerunSim">Re-Run Particle Simulation</button>
+          </div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

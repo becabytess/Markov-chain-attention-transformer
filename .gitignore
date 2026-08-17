@@ -1,0 +1,46 @@
+# Secrets & Credentials
+.env
+*.env
+*.pem
+*.key
+
+# Personal / Raw User Activity Data
+data/raw/
+data/cache/
+data/processed/
+Takeout/
+*.zip
+
+# Python & Environment
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# IDEs & System
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
