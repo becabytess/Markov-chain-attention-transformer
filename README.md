@@ -1,6 +1,6 @@
 # Gravitational Memory (Gravimem) 🪐
 
-> **Dynamic Semantic Memory via Query Deformation & Semantic Graph PageRank**
+> **A Markov-Based Fluid Memory Algorithm Inspired by Google PageRank**
 > *An ongoing research project on dynamic, personalized knowledge geometry beyond static embeddings and spaced repetition.*
 
 ---
