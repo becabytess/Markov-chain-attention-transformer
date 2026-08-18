@@ -4,12 +4,16 @@
 *.pem
 *.key
 
-# Personal / Raw User Activity Data
+# Personal / Raw User Activity Data & Cache
+**/data/raw/
+**/data/cache/
+**/data/processed/
 data/raw/
 data/cache/
 data/processed/
 Takeout/
 *.zip
+*.json.gz
 
 # Python & Environment
 __pycache__/
