@@ -144,13 +144,38 @@ Hidden state velocity and policy stability tracked across iteration steps ($t=0 
 * **Peak GPU VRAM:** **`827.0 MB`** (< 1 GB VRAM at 1024 context!)
 * **Training Speed:** **`348,506 tok/s`** on single Tesla T4 GPU.
 
+#### 7. Adaptive Early-Exit & Dynamic Compute Halting Study
+*Can Gravimem identify when another hop is no longer worth the compute?*
+
+Yes! Because Gravimem unrolls stateful thought steps recursively across the same physical parameters, each token can independently monitor its convergence and halt when additional compute yields diminishing returns.
+
+##### A. Dynamical State Velocity Halting ($\|\Delta s\| / \|s\| \le \epsilon$)
+Halting when state updates drop below relative velocity $\epsilon$:
+
+| Convergence Threshold ($\epsilon$) | Avg Hops ($T$) | Compute Savings ($\%$) | Val Loss | Perplexity | Notes |
+| :---: | :---: | :---: | :---: | :---: | :--- |
+| **$\epsilon = 0.08$** | **`3.40`** | **`43.4%`** | **`1.7348`** | **`5.67`** 🎯 | **Matches fixed $T=4$ quality while cutting compute by 43%!** |
+| **$\epsilon = 0.12$** | **`2.99`** | **`50.1%`** | **`1.7363`** | **`5.68`** | **50% compute reduction with zero loss in perplexity** |
+| **$\epsilon = 0.20$** | **`2.51`** | **`58.2%`** | `1.7548` | `5.78` | Beats fixed $T=2$ with 58% compute reduction |
+
+##### B. Top-1 Prediction Invariance Halting
+Halting when the argmax predicted token stabilizes between consecutive steps ($\text{argmax}(z^{(t)}) == \text{argmax}(z^{(t-1)})$):
+* **Average Hops:** **`2.14`** (vs. max $T=6$)
+* **Compute Savings:** **`64.3%`**
+* **Validation Perplexity:** **`5.87`** (Loss `1.7704`)
+* **Hop Distribution:** $87.1\%$ of tokens settle and exit by Step 2; only $12.9\%$ of complex tokens require $\ge 3$ hops.
+
+##### C. Token Difficulty Profiling
+* **Easy / High-Certainty Tokens (Exit at $T=1$, minimal compute):** Deterministic suffixes, syntax symbols, whitespace (`"hpno'shndwsk"`).
+* **Hard / Context-Dependent Tokens (Exit at $T \ge 4$, deep reasoning):** Proper nouns (e.g. `"Lucentio"`), narrative transitions, ambiguous semantic boundaries (`"t ha hapened,\nLuceti fate"`).
+
 ---
 
 ## 4. Quickstart & Installation
 
 ```bash
-git clone https://github.com/becabytess/gravitational-memory.git
-cd gravitational-memory
+git clone https://github.com/becabytess/Markov-chain-attention-transformer.git
+cd Markov-chain-attention-transformer
 pip install -r requirements.txt
 ```
 
@@ -192,16 +217,22 @@ generated = model.generate(x[:, :10], max_new_tokens=30, T=4)
 All benchmarks run out-of-the-box on Modal GPU (Tesla T4):
 
 ```bash
-# Long-Context (L=512) Benchmark vs Dense Attention
+# 1. 15-Point Grand Scientific Suite (ChatGPT Verification Suite)
+modal run modal_benchmark_chatgpt_suite.py
+
+# 2. Adaptive Early-Exit & Dynamic Compute Halting Study
+modal run modal_benchmark_adaptive_halting.py
+
+# 3. Long-Context (L=512) Benchmark vs Dense Attention
 modal run modal_benchmark_long_context_jumps.py
 
-# Multi-Scale Jump Menu Comparison (5 vs 8 vs 12 Jumps)
+# 4. Multi-Scale Jump Menu Comparison (5 vs 8 vs 12 Jumps)
 modal run modal_benchmark_positional_jumping.py
 
-# Stateful Surfer Backpack Comparison (Fluid vs Residual vs GRU)
+# 5. Stateful Surfer Backpack Comparison (Fluid vs Residual vs GRU)
 modal run modal_benchmark_stateful_surfer.py
 
-# Progressive Anytime Sharpening Curve (T=1..8)
+# 6. Progressive Anytime Sharpening Curve (T=1..8)
 modal run modal_benchmark_progressive_sharpening.py
 ```
 
