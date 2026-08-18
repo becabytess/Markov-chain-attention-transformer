@@ -2,7 +2,7 @@
 Full Gravimem Model Architectures (Language Model & Classifier).
 """
 
-import math
+from typing import List
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -12,7 +12,10 @@ from gravimem.layers import GravimemBlock
 class GravimemLM(nn.Module):
     """
     Autoregressive Gravimem Language Model.
-    Emulates a deep computational transformer using unrolled recurrent Markov surfing.
+    Supports:
+    - routing_mode="jump": Sub-quadratic O(L * K) Positional Jump Surfer (Default, Best Quality)
+    - routing_mode="dense": Causal Dense Markov Attention (O(L^2))
+    - Dynamic anytime thought unrolling across T hops
     """
     def __init__(
         self,
@@ -21,8 +24,10 @@ class GravimemLM(nn.Module):
         d_model: int = 128,
         n_heads: int = 4,
         n_layers: int = 1,
-        default_T: int = 3,
+        default_T: int = 4,
         d_mlp: int = 512,
+        routing_mode: str = "jump",
+        jump_offsets: List[int] = None,
     ):
         super().__init__()
         self.vocab_size = vocab_size
@@ -31,12 +36,20 @@ class GravimemLM(nn.Module):
         self.n_heads = n_heads
         self.n_layers = n_layers
         self.default_T = default_T
+        self.routing_mode = routing_mode
 
         self.tok_emb = nn.Embedding(vocab_size, d_model)
         self.pos_emb = nn.Embedding(max_seq_len, d_model)
 
         self.layers = nn.ModuleList([
-            GravimemBlock(d_model=d_model, n_heads=n_heads, d_mlp=d_mlp, default_T=default_T)
+            GravimemBlock(
+                d_model=d_model,
+                n_heads=n_heads,
+                d_mlp=d_mlp,
+                default_T=default_T,
+                routing_mode=routing_mode,
+                jump_offsets=jump_offsets
+            )
             for _ in range(n_layers)
         ])
 
@@ -48,18 +61,10 @@ class GravimemLM(nn.Module):
         return torch.triu(torch.full((seq_len, seq_len), float('-inf'), device=device), diagonal=1)
 
     def forward(self, idx: torch.Tensor, T: int = None, return_all_steps: bool = False):
-        """
-        Args:
-            idx: (B, L) input token indices
-            T: reasoning / surfing hops per layer
-            return_all_steps: If True, returns list of logits per step t in [1..T]
-        Returns:
-            logits: (B, L, vocab_size) or list of logits if return_all_steps is True
-        """
         B, L = idx.shape
         pos = torch.arange(0, L, device=idx.device).unsqueeze(0)
         x = self.tok_emb(idx) + self.pos_emb(pos)
-        causal_mask = self.get_causal_mask(L, idx.device)
+        causal_mask = self.get_causal_mask(L, idx.device) if self.routing_mode == "dense" else None
 
         if return_all_steps and self.n_layers == 1:
             step_states = self.layers[0](x, causal_mask=causal_mask, T=T, return_all_steps=True)
@@ -101,7 +106,9 @@ class GravimemClassifier(nn.Module):
         d_model: int = 128,
         n_heads: int = 4,
         n_layers: int = 1,
-        default_T: int = 3,
+        default_T: int = 4,
+        routing_mode: str = "jump",
+        jump_offsets: List[int] = None,
     ):
         super().__init__()
         self.num_classes = num_classes
@@ -110,7 +117,13 @@ class GravimemClassifier(nn.Module):
         self.pos_emb = nn.Embedding(max_seq_len, d_model)
 
         self.layers = nn.ModuleList([
-            GravimemBlock(d_model=d_model, n_heads=n_heads, default_T=default_T)
+            GravimemBlock(
+                d_model=d_model,
+                n_heads=n_heads,
+                default_T=default_T,
+                routing_mode=routing_mode,
+                jump_offsets=jump_offsets
+            )
             for _ in range(n_layers)
         ])
 
@@ -125,5 +138,4 @@ class GravimemClassifier(nn.Module):
         for layer in self.layers:
             x = layer(x, causal_mask=None, T=T)
 
-        # Classification pooling at last position
         return self.head(self.ln_f(x[:, -1, :]))
