@@ -165,9 +165,26 @@ Halting when the argmax predicted token stabilizes between consecutive steps ($\
 * **Validation Perplexity:** **`5.87`** (Loss `1.7704`)
 * **Hop Distribution:** $87.1\%$ of tokens settle and exit by Step 2; only $12.9\%$ of complex tokens require $\ge 3$ hops.
 
-##### C. Token Difficulty Profiling
-* **Easy / High-Certainty Tokens (Exit at $T=1$, minimal compute):** Deterministic suffixes, syntax symbols, whitespace (`"hpno'shndwsk"`).
-* **Hard / Context-Dependent Tokens (Exit at $T \ge 4$, deep reasoning):** Proper nouns (e.g. `"Lucentio"`), narrative transitions, ambiguous semantic boundaries (`"t ha hapened,\nLuceti fate"`).
+#### 8. Head-to-Head: 1-Layer Gravimem vs. Deep Multi-Layer Transformers (1, 2, 4 Layers)
+
+To test whether recurrent geometric routing can outperform deep physical layer stacking, we compared a **1-Layer Gravimem** model ($T=4$ hops, 1 physical surfer layer) against **Standard Multi-Head Attention Transformers** with 1, 2, and 4 physical layers on TinyShakespeare at context length $L = 512$:
+
+| Architecture | Physical Layers | Parameter Count | Val Loss | Perplexity | Peak VRAM | Key Observation |
+| :--- | :---: | :---: | :---: | :---: | :---: | :--- |
+| **Gravimem (1 Layer, $T=4$)** | **1** | **342,159** | **`1.8193`** | **`6.17`** 🏆 | **810.8 MB** | **Crushes 4-layer Transformer with 60% fewer parameters!** |
+| Standard Transformer (1 Layer) | 1 | 273,920 | `2.4909` | `12.07` | 598.2 MB | Suffers from uniform attention dispersion ("attention dust") |
+| Standard Transformer (2 Layers) | 2 | 471,680 | `2.4702` | `11.83` | 852.1 MB | 1.38x more params than Gravimem, but 1.9x worse perplexity |
+| Standard Transformer (4 Layers) | 4 | 867,200 | `2.3025` | `10.00` | 1,369.6 MB | 2.53x more params, 41% more VRAM, still 38% worse perplexity |
+
+##### Key Insights:
+1. **Geometric Routing > Blind Parameter Stacking**:
+   - Stacking 4 dense transformer layers ($867\text{k}$ parameters) only brings perplexity down to `10.00`.
+   - Gravimem with a single physical layer ($342\text{k}$ parameters) reaches **`6.17` perplexity** (a **38% error reduction**).
+2. **Eliminating the "Attention Dust" Problem**:
+   - At context $L=512$, dense all-to-all attention scatters probability mass uniformly across 512 keys.
+   - Gravimem's $K=15$ multi-scale geometric jumps ($2^0, \dots, 2^9$) concentrate attention density on high-information anchors, using recurrent thought hops ($T=4$) to refine context without needing multiple physical layer weights.
+3. **Memory & Parameter Efficiency**:
+   - Gravimem uses **60% fewer parameters** and **41% less GPU memory** than the 4-layer Transformer while achieving vastly superior predictive quality.
 
 ---
 
@@ -234,6 +251,9 @@ modal run modal_benchmark_stateful_surfer.py
 
 # 6. Progressive Anytime Sharpening Curve (T=1..8)
 modal run modal_benchmark_progressive_sharpening.py
+
+# 7. Head-to-Head vs Multi-Layer Transformers (1L, 2L, 4L, 6L)
+modal run modal_benchmark_vs_multilayer_transformer.py
 ```
 
 ---
