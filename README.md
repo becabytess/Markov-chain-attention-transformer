@@ -8,28 +8,29 @@
 
 ---
 
-## 1. Executive Summary & Dual Breakthrough
+## 1. Executive Summary & Core Mechanism
 
 Standard Transformers suffer from two fundamental bottlenecks:
 1. **The Parameter Stacking Tax:** Solving multi-hop reasoning ($A \to B \to C \to D$) requires stacking $N$ physical parameter layers.
 2. **The Attention Dust & Quadratic Curse:** Softmax over all past tokens causes an $O(L^2)$ computational explosion and pollutes representations with background "attention dust" on long contexts.
 
-**Gravimem** solves both bottlenecks simultaneously:
+### The Emerging Mechanistic Picture
 
-1. **Sub-Quadratic Positional Jumping ($O(L \cdot K)$):**
-   Instead of computing an all-to-all $L \times L$ attention matrix, each token $i$ dynamically chooses from a compact menu of $K$ multi-scale relative jump offsets:
-   $$\Delta \in \{0, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 128, 256, \dots\}$$
-   * Eliminates the $L \times L$ memory buffer completely.
-   * Eliminates attention dust, allowing the model to focus 100% of its capacity on high-value landmarks.
+Extensive empirical, dynamical, and mechanistic probing reveals that **Gravimem is fundamentally a self-constructing sparse graph neural network with recurrent non-linear state refinement**:
 
-2. **Stateful Gated Trajectory Accumulation:**
-   Each surfer maintains a private vector "backpack" ($s_i^{(t)}$) updated via a **`GRUCell`**:
-   $$\boxed{s_i^{(t+1)} = \text{GRUCell}\left(W_{\text{out}} \sum_{k=1}^K \pi_{i, k}^{(t)} V_{i - \Delta_k}, \; s_i^{(t)}\right)}$$
-   * The **Reset Gate** discards irrelevant local noise.
-   * The **Update Gate** preserves discovered distant subjects and antecedent variables.
+$$\boxed{\text{Learn Sparse Graph } (\pi^{(1)}) \longrightarrow \text{Message Passing Over Graph } (s^{(t)}) \longrightarrow \text{Iterative State Refinement} \longrightarrow \text{Stable Settling}}$$
 
-3. **Dynamic Anytime Thought Unrolling:**
-   Unroll $T=1$ hop for instant execution, or let the surfer run for $T=4 \dots 6$ hops on complex logic — monotonically sharpening predictions at each step.
+1. **Graph Construction (Hop 1):** The attention queries/keys construct a sparse directed graph over the context, selecting $K$ high-value jump neighbors ($O(L \cdot K)$ compute).
+2. **Message Passing (Hops 2...$T$):** The relational graph is held static while a recurrent **`GRUCell`** acts as a message-passing processor, iteratively combining and refining information along those pathways without needing to rediscover locations.
+3. **Local Contraction & Settling:** Local Jacobian dynamics are contractive ($\rho(J) < 1.0$), causing local disturbances to decay ($\Delta s_{t+1} \approx J \Delta s_t$) and allowing the token representation to smoothly settle into a locally stable resting state.
+
+```mermaid
+flowchart LR
+    Tokens["Context Tokens X"] --> Graph["1. Learn Sparse Graph (Hop 1)"]
+    Graph --> MsgPass["2. Recurrent Message Passing (Hops 2..T)"]
+    MsgPass --> Settle["3. Local Error Damping & Settling"]
+    Settle --> Out["Next Token Prediction Logits"]
+```
 
 ## Table of Contents
 - [1. Executive Summary & Dual Breakthrough](#1-executive-summary--dual-breakthrough)
@@ -400,23 +401,23 @@ To observe what Gravimem's recurrent jumps and GRU state are actually doing when
 
 * **Mean Step Velocity Decay**: $1.1445 \to 0.3517 \to 0.2237 \to 0.1724 \to 0.1420 \to 0.1213 \to \mathbf{0.1063}$.
 
-#### 13. Mathematical Contraction & Message-Passing Foundations Suite
+#### 13. Mathematical Dynamics & Sparse Graph Message Passing
 
-To rigorously test the theoretical limits and mathematical properties of Gravimem as an **Iterative Message Passing System over Learned Sparse Graphs**, we executed three advanced mathematical and mechanistic studies on Modal GPUs:
+To rigorously test the theoretical limits and dynamical behavior of Gravimem as an **Iterative Message Passing System over Learned Sparse Graphs**, we executed three targeted mechanistic studies on Modal GPUs:
 
-##### Study 1: Formal Jacobian Spectral Radius & Contraction Proof (Banach Theorem)
+##### Study 1: Local Jacobian Spectral Analysis & Perturbation Damping
 *Calculated the exact $128 \times 128$ local Jacobian $J = \frac{\partial s^{(t+1)}}{\partial s^{(t)}}$ via PyTorch autograd across thought hops $t \in [1 \dots 8]$:*
 
-| Hop Step ($t$) | Spectral Radius ($\rho(J) = \max |\lambda_i|$) | Operator Norm ($\|J\|_2$) | Phase Space Log-Det ($\ln |\det(J)|$) | Mathematical Regime |
+| Hop Step ($t$) | Spectral Radius ($\rho(J) = \max |\lambda_i|$) | Operator Norm ($\|J\|_2$) | Phase Space Log-Det ($\ln |\det(J)|$) | Local Dynamical Regime |
 | :---: | :---: | :---: | :---: | :--- |
-| **$t = 1$** | `0.9676` | `1.0176` | `-239.90` | Strict Contraction |
-| **$t = 2$** | `0.9967` | `1.0090` | `-239.36` | Asymptotic Contraction |
-| **$t = 4$** | `0.9984` | `1.0102` | `-241.64` | Asymptotic Contraction |
-| **$t = 8$** | **`0.9989`** | `1.0111` | **`-243.61`** | **Banach Stable Fixed Point** 🛡️ |
+| **$t = 1$** | `0.9676` | `1.0176` | `-239.90` | Perturbation Damping |
+| **$t = 2$** | `0.9967` | `1.0090` | `-239.36` | Local Asymptotic Settling |
+| **$t = 4$** | `0.9984` | `1.0102` | `-241.64` | Local Asymptotic Settling |
+| **$t = 8$** | **`0.9989`** | `1.0111` | **`-243.61`** | **Locally Stable Attractor** 🛡️ |
 
-* **Mathematical Breakthrough**:
-  - **$\rho(J) = 0.9989 < 1.0000$ (Strictly Contractive)**: By the **Banach Fixed-Point Theorem & Hartman-Grobman Theorem**, any discrete recurrent system where the Jacobian spectral radius remains strictly bounded below 1.0 possesses a **unique, asymptotically stable fixed point** $s^*$.
-  - **Volume Contraction $\ln |\det(J)| = -243.6$**: Phase space volume shrinks by $e^{-243.6} \approx 10^{-106}$ at every step, mathematically demonstrating that Gravimem is a dissipative, volume-contracting dynamical attractor.
+* **Mechanistic Interpretation in Plain English**:
+  - **Local Stability ($\rho(J) < 1.0$)**: Around the resting state, a perturbation $\Delta s_t$ evolves according to $\Delta s_{t+1} \approx J \Delta s_t$. Because the dominant eigenvalue magnitude is strictly below 1.0, repeated recurrent applications shrink disturbances ($\Delta s_t \to 0$), providing strong empirical evidence for **locally stable fixed-point attractors**.
+  - **Phase Space Contraction ($\ln |\det(J)| = -243.6$)**: The volume of state phase space actively contracts by $e^{-243.6} \approx 10^{-106}$ per step, preventing representations from oscillating or diverging.
 
 ##### Study 2: Message Passing on a Fixed Learned Graph & Minimal-Pair Resolution
 *Held the relational graph $\pi^{(1)}$ and context $C$ completely static and unrolled the recurrent GRU state:*
@@ -425,7 +426,7 @@ To rigorously test the theoretical limits and mathematical properties of Gravime
    - Tested on distractor-heavy agreement pairs (*"The key to the ornate cabinets [is / are]"* vs *"The keys to the ornate cabinet [are / is]"*).
    - Grammatical log-odds difference $\log P(\text{correct}) - \log P(\text{wrong})$ increases steadily across frozen-graph message-passing hops:
      $$-0.3651 \longrightarrow -0.3376 \longrightarrow -0.3281 \longrightarrow \mathbf{-0.3253}$$
-   - **Conclusion**: Successive message-passing hops over a static graph specifically refine and disambiguate non-local grammatical dependencies!
+   - **Conclusion**: The model does not need to constantly re-search for new locations; subsequent message-passing hops over the *fixed* graph specifically combine and refine long-distance grammatical bindings!
 
 ##### Study 3: Message-Passing Depth vs. Graph Width Frontier ($T$ vs $K$)
 *Compared flat wide retrieval vs deep recurrent message passing under matched compute:*
@@ -437,7 +438,7 @@ To rigorously test the theoretical limits and mathematical properties of Gravime
 | **Sparse Deep (4 Message Hops)** | $K = 8$ | $T = 4$ | `4.9600` | `142.60` |
 | **Ultra-Sparse Deep (8 Message Hops)** | $K = 4$ | $T = 8$ | `4.9672` | `143.63` |
 
-* **Empirical Takeaway**: Iterative message passing over a sparser graph ($K=16, T=2$) significantly outperforms flat single-hop wide attention ($K=32, T=1$), proving that non-linear state transformation along relational pathways is computationally superior to flat attention pooling.
+* **Core Insight**: **Breadth of access and depth of computation are not interchangeable.** Simply giving a token more immediate neighbors ($K=32, T=1$) cannot replicate letting information propagate and non-linearly transform through multiple rounds over a sparser graph ($K=16, T=2$).
 
 ---
 
