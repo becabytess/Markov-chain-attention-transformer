@@ -268,6 +268,32 @@ To establish the absolute limits of Gravimem vs. Deep Multi-Layer Transformers, 
 
 * **Result**: While standard 4-layer transformers run out of memory and crash at $L=4096$, Gravimem requires **under 2 GB VRAM** and processes **253,000 tokens/second** at maximum throughput.
 
+#### 10. Nightmare Empirical Suite: Stress-Testing Core Failure Modes
+
+To stress-test fundamental algorithmic capabilities that notoriously break recurrent models and sub-quadratic attention, we executed two specialized "nightmare" synthetic benchmarks on dedicated Modal GPUs:
+
+##### Benchmark 1: Multi-Query Associative Recall (MQAR) ($L=512$, 16 Interleaved Pairs)
+*Tests whether the model can retrieve multiple independent key-value pairs scattered across the context without attention diffusion:*
+
+| Architecture | Physical Layers | Parameters | Final Recall Accuracy | Training Time |
+| :--- | :---: | :---: | :---: | :---: |
+| **Gravimem ($T=4$ Hops)** | **1** | **399,375** | **`100.00%`** 🎯 | **`126.2s` (28% faster)** |
+| Standard Transformer | 4 | 924,416 | **`100.00%`** | 174.3s |
+
+* **Result**: 1-Layer Gravimem achieves flawless **100.00% multi-query recall** simultaneously across 16 interleaved key-value pairs, using **57% fewer parameters** and converging **28% faster** than the 4-layer Transformer.
+
+##### Benchmark 2: Deep Nested Dyck-4 Grammar (Bracket Matching up to Depth 30+)
+*Tests stack memory depth over 4 bracket types `()`, `[]`, `{}`, `<>` at sequence length $L=256$:*
+
+| Architecture | Physical Layers | Parameters | Overall Accuracy | Depth 1-5 | Depth 6-15 | Depth 16-30 |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Gravimem ($T=4$ Hops)** | **1** | **304,780** | **`75.35%`** | `75.62%` | `72.93%` | `77.18%` |
+| Standard Transformer | 4 | 830,208 | **`88.15%`** 🏆 | `91.45%` | `85.92%` | `88.62%` |
+
+* **Scientific Insight**: 
+  - The 4-Layer Transformer achieves higher accuracy ($88.15\%$ vs $75.35\%$) on deep Dyck-4 bracket elimination because full $L \times L$ attention allows each physical layer to resolve arbitrary-length matched inner spans. 
+  - Gravimem reaches a solid $75.35\%$ (far above random chance $25\%$) using its GRU analog vector stack across logarithmic jump strides.
+
 ---
 
 ## 4. Quickstart & Installation
@@ -316,25 +342,31 @@ generated = model.generate(x[:, :10], max_new_tokens=30, T=4)
 All benchmarks run out-of-the-box on Modal GPU (Tesla T4):
 
 ```bash
-# 1. Multi-Epoch Deep Convergence (5,000 Steps)
+# 1. Multi-Query Associative Recall (MQAR) Nightmare Benchmark
+modal run modal_nightmare1_mqar.py
+
+# 2. Deep Nested Dyck-4 Grammar Matching Nightmare Benchmark
+modal run modal_nightmare2_dyck_grammar.py
+
+# 3. Multi-Epoch Deep Convergence (5,000 Steps)
 modal run modal_exp1_deep_convergence.py
 
-# 2. Needle-In-A-Haystack Long-Distance Associative Recall
+# 4. Needle-In-A-Haystack Long-Distance Associative Recall
 modal run modal_exp2_needle_in_haystack.py
 
-# 3. Zero-Shot Context Length Extrapolation (L=256 -> 512, 1024)
+# 5. Zero-Shot Context Length Extrapolation (L=256 -> 512, 1024)
 modal run modal_exp3_length_extrapolation.py
 
-# 4. Extreme Context Scaling & OOM Memory Frontier (L=256..4096)
+# 6. Extreme Context Scaling & OOM Memory Frontier (L=256..4096)
 modal run modal_exp4_extreme_context.py
 
-# 5. Head-to-Head Multi-Layer Transformer Suite (1L, 2L, 4L, 6L)
+# 7. Head-to-Head Multi-Layer Transformer Suite (1L, 2L, 4L, 6L)
 modal run modal_benchmark_vs_multilayer_transformer.py
 
-# 6. Adaptive Early-Exit & Dynamic Compute Halting Study
+# 8. Adaptive Early-Exit & Dynamic Compute Halting Study
 modal run modal_benchmark_adaptive_halting.py
 
-# 7. 15-Point Grand Scientific Suite (ChatGPT Verification Suite)
+# 9. 15-Point Grand Scientific Suite (ChatGPT Verification Suite)
 modal run modal_benchmark_chatgpt_suite.py
 ```
 
