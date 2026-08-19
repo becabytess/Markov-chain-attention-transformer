@@ -24,11 +24,33 @@ $$\boxed{\text{Learn Sparse Graph } (\pi^{(1)}) \longrightarrow \text{Message Pa
 2. **Message Passing (Hops 2...$T$):** The relational graph is held static while a recurrent **`GRUCell`** acts as a message-passing processor, iteratively combining and refining information along those pathways without needing to rediscover locations.
 3. **Local Contraction & Settling:** Local Jacobian dynamics are contractive ($\rho(J) < 1.0$), causing local disturbances to decay ($\Delta s_{t+1} \approx J \Delta s_t$) and allowing the token representation to smoothly settle into a locally stable resting state.
 
+### The Physical Intuition: Coupled Dynamical Relaxation & Abstract Energy Redistribution
+
+To understand Gravimem intuitively, imagine each token possessing an abstract quantity of state or "energy" that redistributes and relaxes across the graph:
+
+```text
+Round 0:   A(s_A^(0)) ───→ B(s_B^(0)) ───→ C(s_C^(0)) ───→ D(s_D^(0))
+
+Round 1:   A'         ───→ B'         ───→ C'         ───→ D'
+
+Round 2:   A''        ───→ B''        ───→ C''        ───→ D''
+
+Round 3:   A'''       ───→ B'''       ───→ C'''       ───→ D'''  (Equilibrium: s^(t+1) ≈ s^(t))
+```
+
+* **Multi-Edge Propagation Along a Static Graph**:
+  In Round 1, node $B$ updates from $A$ to form $s_B^{(1)}$. In Round 2, node $C$ reads $B$'s updated state $s_B^{(1)}$—which now carries the information originally from $A$! Thus, information propagates $A \to B \to C \to D$ across multiple graph edges even though the routing topology $\pi^{(1)}$ never changes.
+* **What the Thought Budget $T$ Represents**:
+  The unrolling parameter $T$ is the **relaxation depth / communication diameter** of the coupled system:
+  * **$T=1$**: 1-hop direct neighbor lookup.
+  * **$T=2$**: 2-hop relational composition ($A \to B \to C$).
+  * **$T \ge 3$**: Global multi-hop integration and asymptotic settling ($s_i^{(t+1)} \approx s_i^{(t)}$).
+
 ```mermaid
 flowchart LR
     Tokens["Context Tokens X"] --> Graph["1. Learn Sparse Graph (Hop 1)"]
-    Graph --> MsgPass["2. Recurrent Message Passing (Hops 2..T)"]
-    MsgPass --> Settle["3. Local Error Damping & Settling"]
+    Graph --> MsgPass["2. Multi-Hop Message Passing (Hops 2..T)"]
+    MsgPass --> Settle["3. Coupled Relaxation & Equilibrium"]
     Settle --> Out["Next Token Prediction Logits"]
 ```
 
