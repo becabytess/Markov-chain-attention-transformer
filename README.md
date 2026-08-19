@@ -31,6 +31,28 @@ Standard Transformers suffer from two fundamental bottlenecks:
 3. **Dynamic Anytime Thought Unrolling:**
    Unroll $T=1$ hop for instant execution, or let the surfer run for $T=4 \dots 6$ hops on complex logic — monotonically sharpening predictions at each step.
 
+## Table of Contents
+- [1. Executive Summary & Dual Breakthrough](#1-executive-summary--dual-breakthrough)
+- [2. Architecture Blueprint](#2-architecture-blueprint)
+- [3. Empirical Benchmarks (Tesla T4 GPU Suite)](#3-empirical-benchmarks-validated-on-modal-gpu--tesla-t4)
+  - [A. Long-Context Scaling Benchmark ($L=512$)](#a-long-context-scaling-benchmark-l--512-tokens)
+  - [B. Multi-Scale Jump Menu Ablations](#b-jump-menu-ablation-l128-3000-steps)
+  - [C. Multi-Hop Reasoning & Graph Navigation](#c-multi-hop-reasoning--stateful-tracking)
+  - [D. ChatGPT 15-Point Scientific Validation Suite](#d-chatgpt-15-point-scientific-validation-suite-modal-tesla-t4)
+    - [1. Mixed-$T$ Training & Zero-Shot Depth Generalization](#1-mixed-t-training--zero-shot-depth-generalization-q1-q2-q7)
+    - [2. Fixed-Point Attractor Settling Dynamics](#2-fixed-point-attractor-settling-dynamics-q3)
+    - [3. Recurrence & Routing Policy Ablations](#3-recurrence--routing-ablation-study-q5-q6-q14)
+    - [4. Multi-Seed Stability & Optimization Health](#4-multi-seed-stability--optimization-health-q12-q13)
+    - [5. Latency & Compute-Quality Tradeoff Frontier](#5-latency--compute-quality-tradeoff-frontier-q10)
+    - [6. Ultra-Long Context Scaling ($L=1024$)](#6-ultra-long-context-scaling-l--1024-tokens-q11)
+    - [7. Adaptive Early-Exit & Dynamic Compute Halting](#7-adaptive-early-exit--dynamic-compute-halting-study)
+    - [8. Head-to-Head vs Multi-Layer Transformers (1L, 2L, 4L)](#8-head-to-head-1-layer-gravimem-vs-deep-multi-layer-transformers-1-2-4-layers)
+    - [9. Frontier Empirical Suite (Deep Convergence, Needle-in-a-Haystack, Extrapolation, OOM Frontier)](#9-frontier-empirical-suite-stress-testing-the-limits)
+- [4. Quickstart & Installation](#4-quickstart--installation)
+- [5. Running Experiments on Modal GPU](#5-running-experiments-on-modal-gpu)
+- [6. Project History & Archive](#6-project-history--archive)
+- [7. License](#7-license)
+
 ---
 
 ## 2. Architecture Blueprint
@@ -53,6 +75,19 @@ flowchart LR
 ---
 
 ## 3. Empirical Benchmarks (Validated on Modal GPU / Tesla T4)
+
+### Master Benchmark Matrix: Gravimem vs Baselines
+
+| Benchmark Dimension | Baseline Standard Transformer | Gravimem (1-Layer Surfer) | Gravimem Advantage |
+| :--- | :---: | :---: | :---: |
+| **Language Modeling ($L=512$, 1.5k steps)** | PPL `12.07` (1L) / `10.00` (4L) | **PPL `6.17`** ($1\text{L}, T=4$) | **38% lower perplexity vs 4-layer Transformer** |
+| **Deep Convergence (5,000 steps)** | PPL `6.68` (4L, 867k params) | **PPL `5.80`** (1L, 342k params) | **Better convergence with 60% fewer parameters** |
+| **Needle-In-A-Haystack ($d \le 480$)** | 100.0% accuracy (4L) | **100.0% accuracy** (1L) | **100% exact-match associative recall** |
+| **Zero-Shot Context Extrapolation (256 $\to$ 1024)** | PPL 6.51 $\to$ `25.80` (+296%) | **PPL 6.18 $\to$ `10.15` (+64%)** | **No catastrophic attention collapse** |
+| **Extreme Context Memory ($L=4096$)** | 💥 **CUDA OOM (Crash on 16GB GPU)** | **`1,998.8 MB` (< 2 GB VRAM)** | **Linear memory scaling to 4k+ tokens** |
+| **Inference Throughput ($L=4096$)** | 0 tok/s (Crashed) | **`253,032 tok/s`** | **Maximal GPU saturation with zero OOM** |
+| **Dynamic Compute Halting ($\epsilon=0.08$)** | N/A (Fixed depth) | **`3.40` avg hops ($T$)** | **43.4% compute reduction with zero loss** |
+| **4-Step Variable Dependency Tracking** | 39.02% accuracy (1L) | **`100.00%` accuracy** (1L) | **Perfect multi-hop variable tracking** |
 
 ### A. Long-Context Scaling Benchmark ($L = 512$ Tokens)
 When scaling context length on TinyShakespeare (batch size 32, 16,384 tokens/step):
