@@ -186,6 +186,53 @@ To test whether recurrent geometric routing can outperform deep physical layer s
 3. **Memory & Parameter Efficiency**:
    - Gravimem uses **60% fewer parameters** and **41% less GPU memory** than the 4-layer Transformer while achieving vastly superior predictive quality.
 
+#### 9. Frontier Empirical Suite: Stress-Testing the Limits
+
+To establish the absolute limits of Gravimem vs. Deep Multi-Layer Transformers, four dedicated frontier experiments were run across independent Tesla T4 GPU containers on Modal:
+
+##### Exp 1: Multi-Epoch Deep Convergence (5,000 Steps + Cosine Schedule)
+*Evaluated across ~75 full passes of the dataset to verify long-run convergence and prevent overfitting:*
+
+| Architecture | Physical Layers | Parameters | Train Loss | Val Loss | Perplexity | Peak VRAM | Training Time |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Gravimem ($T=4$ Hops)** | **1** | **342,159** | **`1.4742`** | **`1.7583`** | **`5.80`** 🏆 | **803.2 MB** | **299.5s (~5.0 min)** |
+| Standard Transformer | 4 | 867,200 | `1.6938` | `1.8991` | `6.68` | 1,363.9 MB | 506.5s (~8.5 min) |
+
+* **Result**: Even after 5,000 steps of deep multi-epoch training, 1-Layer Gravimem comfortably outperforms the 4-Layer Transformer by **13% lower perplexity**, trains **1.7x faster**, and uses **41% less VRAM**.
+
+##### Exp 2: Needle-In-A-Haystack Key-Value Associative Recall ($L=512$)
+*Buried key-value pairs under hundreds of random distractor tokens across needle depths $d \in \{16, 64, 128, 256, 384, 480\}$:*
+
+| Architecture | $d=16$ | $d=64$ | $d=128$ | $d=256$ | $d=384$ | $d=480$ | Mean Accuracy |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Gravimem ($1\text{L}, T=4$)** | **100.0%** | **100.0%** | **100.0%** | **100.0%** | **100.0%** | **100.0%** | **`100.0%`** 🎯 |
+| Standard Transformer ($4\text{L}$) | 100.0% | 100.0% | 100.0% | 100.0% | 100.0% | 100.0% | **`100.0%`** |
+
+* **Result**: Gravimem's sparse logarithmic jumps achieve flawless **100% exact-match associative recall** across all context depths with zero attention dispersion.
+
+##### Exp 3: Zero-Shot Context Length Extrapolation
+*Trained strictly on short context $L = 256$ and evaluated zero-shot out to $L = 512$ and $L = 1024$ without fine-tuning:*
+
+| Architecture | $L=256$ (Train) | $L=512$ (Zero-Shot) | $L=1024$ (Zero-Shot) | Extrapolation Degradation |
+| :--- | :---: | :---: | :---: | :---: |
+| **Gravimem ($1\text{L}, T=4$)** | **`6.18` PPL** | **`8.47` PPL** | **`10.15` PPL** | **`+64.2%` (Graceful)** 🛡️ |
+| Standard Transformer ($4\text{L}$) | 6.51 PPL | 16.92 PPL | 25.80 PPL | **`+296.3%` (Catastrophic Collapse)** |
+
+* **Result**: Dense attention suffers catastrophic degradation (+296% perplexity explosion) when context expands. Gravimem's multi-scale relative topological jumps generalize smoothly across 4x context expansion.
+
+##### Exp 4: Extreme Context Scaling & OOM Memory Frontier ($L=256 \dots 4096$)
+*Profiled peak memory allocation and forward-backward throughput on a 16GB Tesla T4 GPU:*
+
+| Context Length ($L$) | Gravimem VRAM | Transformer 4L VRAM | Gravimem Throughput | Transformer 4L Throughput |
+| :--- | :---: | :---: | :---: | :---: |
+| **$L = 256$** | 214.0 MB | 210.2 MB | 164,210 tok/s | 182,931 tok/s |
+| **$L = 512$** | 336.0 MB | 434.3 MB | 244,553 tok/s | 170,716 tok/s |
+| **$L = 1024$** | **573.5 MB** | 1,218.6 MB (2.1x) | **248,435 tok/s** | 109,077 tok/s (2.3x slower) |
+| **$L = 2048$** | **1,049.2 MB** | 4,131.2 MB (4.0x) | **251,794 tok/s** | 62,074 tok/s (4.1x slower) |
+| **$L = 4096$** | **`1,998.8 MB` (< 2 GB)** | 💥 **OOM (CUDA Crash)** | **`253,032 tok/s`** | **0 tok/s (Crashed)** |
+
+* **Result**: While standard 4-layer transformers run out of memory and crash at $L=4096$, Gravimem requires **under 2 GB VRAM** and processes **253,000 tokens/second** at maximum throughput.
+
 ---
 
 ## 4. Quickstart & Installation
@@ -234,26 +281,26 @@ generated = model.generate(x[:, :10], max_new_tokens=30, T=4)
 All benchmarks run out-of-the-box on Modal GPU (Tesla T4):
 
 ```bash
-# 1. 15-Point Grand Scientific Suite (ChatGPT Verification Suite)
-modal run modal_benchmark_chatgpt_suite.py
+# 1. Multi-Epoch Deep Convergence (5,000 Steps)
+modal run modal_exp1_deep_convergence.py
 
-# 2. Adaptive Early-Exit & Dynamic Compute Halting Study
+# 2. Needle-In-A-Haystack Long-Distance Associative Recall
+modal run modal_exp2_needle_in_haystack.py
+
+# 3. Zero-Shot Context Length Extrapolation (L=256 -> 512, 1024)
+modal run modal_exp3_length_extrapolation.py
+
+# 4. Extreme Context Scaling & OOM Memory Frontier (L=256..4096)
+modal run modal_exp4_extreme_context.py
+
+# 5. Head-to-Head Multi-Layer Transformer Suite (1L, 2L, 4L, 6L)
+modal run modal_benchmark_vs_multilayer_transformer.py
+
+# 6. Adaptive Early-Exit & Dynamic Compute Halting Study
 modal run modal_benchmark_adaptive_halting.py
 
-# 3. Long-Context (L=512) Benchmark vs Dense Attention
-modal run modal_benchmark_long_context_jumps.py
-
-# 4. Multi-Scale Jump Menu Comparison (5 vs 8 vs 12 Jumps)
-modal run modal_benchmark_positional_jumping.py
-
-# 5. Stateful Surfer Backpack Comparison (Fluid vs Residual vs GRU)
-modal run modal_benchmark_stateful_surfer.py
-
-# 6. Progressive Anytime Sharpening Curve (T=1..8)
-modal run modal_benchmark_progressive_sharpening.py
-
-# 7. Head-to-Head vs Multi-Layer Transformers (1L, 2L, 4L, 6L)
-modal run modal_benchmark_vs_multilayer_transformer.py
+# 7. 15-Point Grand Scientific Suite (ChatGPT Verification Suite)
+modal run modal_benchmark_chatgpt_suite.py
 ```
 
 ---
