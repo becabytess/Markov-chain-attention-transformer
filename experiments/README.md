@@ -1,5 +1,7 @@
 # SubQTransformer Empirical & Mechanistic Research Suite
 
+> **Full Detailed Research Log & Discoveries**: For the complete chronological research report, exhaustive benchmark logs, Jacobian spectral proofs, and ablation studies, please refer to **[`RESEARCH_JOURNEY.md`](file:///c:/Users/beca/Desktop/gravimem-revived/experiments/RESEARCH_JOURNEY.md)**.
+
 This directory contains all 43 dedicated research, benchmark, and mechanistic study scripts executed on Modal cloud GPU infrastructure during the research and discovery phase of SubQTransformer.
 
 ## Catalog of Studies

@@ -19,6 +19,8 @@ Input Tokens X ──► Step 1: Multi-Scale Sparse Routing (K Logarithmic Offse
                    Step 4: LayerNorm + Feedforward MLP + Output Head
 ```
 
+> 📖 **Comprehensive Research Journey & Full Technical Report**: For the complete, unabridged 40KB experimental log covering all 43 Modal GPU studies (including Jacobian spectral proofs, Dyck-4 bracket stacks, MQAR benchmarks, and ambient 128D geometric straightness analysis), see **[`experiments/RESEARCH_JOURNEY.md`](file:///c:/Users/beca/Desktop/gravimem-revived/experiments/RESEARCH_JOURNEY.md)**.
+
 ---
 
 ## 🚀 Key Highlights
