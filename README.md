@@ -37,8 +37,8 @@ Input Tokens X ──► Step 1: Multi-Scale Sparse Routing (K Logarithmic Offse
 ## 📦 Installation
 
 ```bash
-git clone https://github.com/becabytess/Markov-chain-attention-transformer.git
-cd Markov-chain-attention-transformer
+git clone https://github.com/becabytess/Subq-Transformer.git
+cd Subq-Transformer
 pip install -e .
 ```
 

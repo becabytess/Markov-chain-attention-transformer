@@ -488,8 +488,8 @@ To rigorously test the theoretical limits and dynamical behavior of Gravimem as 
 ## 4. Quickstart & Installation
 
 ```bash
-git clone https://github.com/becabytess/Markov-chain-attention-transformer.git
-cd Markov-chain-attention-transformer
+git clone https://github.com/becabytess/Subq-Transformer.git
+cd Subq-Transformer
 pip install -r requirements.txt
 ```
 
